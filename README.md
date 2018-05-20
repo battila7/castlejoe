@@ -56,7 +56,7 @@ Evaluating a cubic B-Spline curve is as simple as:
     controlPointContext.setPoints(controlPoints);
 
     // evaluateCurve() calculates the curve points but does not copy the result back to the main memory.
-    Evaluation<castlejoe::point::Point> eval = cubicBSpline.evaluateCurve();
+    castlejoe::curve::Evaluation<castlejoe::point::Point> eval = cubicBSpline.evaluateCurve();
 
     // If you want to access the buffer object with the curve points, use eval.buffer.
     // Otherwise, they can be copied to the main memory:
