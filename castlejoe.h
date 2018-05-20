@@ -158,17 +158,17 @@ namespace castlejoe {
                 curvePoints.reserve(pointCount);
 
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
-	            point::Point *outPoints = (point::Point *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, pointCount * sizeof(point::Point), GL_MAP_READ_BIT);
-	            for (int i = 0; i < pointCount; ++i) {
-		            curvePoints.push_back(point::Converter<PointType>::convertTo(outPoints[i]));
-	            }
-	            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+                point::Point *outPoints = (point::Point *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, pointCount * sizeof(point::Point), GL_MAP_READ_BIT);
+                for (int i = 0; i < pointCount; ++i) {
+                    curvePoints.push_back(point::Converter<PointType>::convertTo(outPoints[i]));
+                }
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
                 return curvePoints;
             }
         };
 
-        template<typename PointType>
+        template <typename PointType>
         class Curve {
         public:
             Curve(const point::ControlPointContext<PointType> & controlPointContext):
@@ -180,12 +180,12 @@ namespace castlejoe {
             const point::ControlPointContext<PointType> controlPointContext;
         };
 
-        template<typename PointType>
+        template <typename PointType>
         class CubicBSpline : public Curve<PointType> {
         public:
-            CubicBSpline(const point::ControlPointContext<PointType> & controlPointContext) : Curve(controlPointContext) {
+            CubicBSpline(const point::ControlPointContext<PointType> & controlPointContext) : Curve<PointType>(controlPointContext) {
                 glGenBuffers(1, &controlPointBuffer);
-	            glGenBuffers(1, &curvePointBuffer);
+                glGenBuffers(1, &curvePointBuffer);
             }
 
             ~CubicBSpline() {
