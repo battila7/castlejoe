@@ -129,6 +129,10 @@ namespace castlejoe {
         template <typename PointType>
         class ControlPointContext {
         public:
+            ControlPointContext() {
+                glGenBuffers(1, &pointBuffer);
+            }
+
             void setPoints(const std::vector<PointType> points) {
                 this->points.clear();
 
@@ -137,13 +141,37 @@ namespace castlejoe {
                 for (const auto &p : points) {
                     this->points.push_back(Converter<PointType>::convertFrom(p));
                 }
+
+                fillBuffer();
+            }
+
+            size_t getPointCount() const {
+                return points.size();
             }
 
             std::vector<Point> getPoints() const {
                 return points;
             }
+
+            GLuint getPointBuffer() const {
+                return pointBuffer;
+                
+            }
         private:
+            void fillBuffer() {
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, pointBuffer);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, points.size() * sizeof Point, NULL, GL_STATIC_DRAW);
+                GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
+                Point *bufferPoints = (Point *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, points.size() * sizeof Point, bufMask);
+                for (int i = 0; i < points.size(); ++i) {
+                    bufferPoints[i] = points[i];
+                }
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            }
+
             std::vector<Point> points;
+
+            GLuint pointBuffer;
         };
     }
 
@@ -177,7 +205,7 @@ namespace castlejoe {
 
             virtual Evaluation<PointType> evaluateCurve() = 0;
         protected:
-            const point::ControlPointContext<PointType> controlPointContext;
+            const point::ControlPointContext<PointType> & controlPointContext;
         };
 
         template <typename PointType>
@@ -193,32 +221,19 @@ namespace castlejoe {
             }
 
             virtual Evaluation<PointType> evaluateCurve() override {
-                using Point = point::Point;
-
-                std::vector<Point> controlPoints = controlPointContext.getPoints();
-
-                if (controlPoints.size() < 4) {
+                if (this->controlPointContext.getPointCount() < 4) {
                     return {};
                 }
-
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, controlPointBuffer);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, controlPoints.size() * sizeof Point, NULL, GL_STATIC_DRAW);
-                GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
-                Point *points = (Point *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, controlPoints.size() * sizeof Point, bufMask);
-                for (int i = 0; i < controlPoints.size(); ++i) {
-                    points[i] = controlPoints[i];
-                }
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
                 int groupCount = controlPoints.size() - 3;
 
                 GLuint outputCount = groupCount * 101;
 
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, curvePointBuffer);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, outputCount * sizeof Point, NULL, GL_STATIC_DRAW);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, outputCount * sizeof point::Point, NULL, GL_STATIC_DRAW);
 
                 glUseProgram(shaders::Shaders::getProgram(shaders::Type::CUBIC_B_SPLINE));
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, controlPointBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this->controlPointContext.getPointBuffer());
 				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, curvePointBuffer);
 
                 glDispatchCompute(groupCount, 1, 1);
